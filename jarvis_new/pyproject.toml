@@ -1,0 +1,15 @@
+[project]
+name = "jarvis-pel"
+version = "0.1.0"
+description = "LiveKit Jarvis + Prompt Execution Layer"
+requires-python = ">=3.10"
+dependencies = [
+  "livekit-agents[google,silero]>=1.2.0",
+  "livekit-plugins-ai-coustics",
+  "python-dotenv",
+  "playwright",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
