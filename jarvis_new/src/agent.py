@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from google.genai import types as genai_types
 from livekit.agents import (
@@ -10,7 +12,7 @@ from livekit.agents import (
     inference,
     room_io,
 )
-from livekit.plugins import google
+from livekit.plugins import elevenlabs, google
 
 from browser import BrowserManager
 from pel.rig import PromptExecutionLayer
@@ -19,22 +21,33 @@ from tools import BrowserTools
 
 load_dotenv(".env.local")
 
+USE_CLONED_VOICE = os.getenv("USE_CLONED_VOICE", "false").lower() in {"1", "true", "yes"}
+ELEVEN_VOICE = (os.getenv("ELEVENLABS_VOICE_ID") or "").strip()
+ELEVEN_MODEL = os.getenv("ELEVENLABS_MODEL_ID") or "eleven_multilingual_v2"
+
 
 class Assistant(Agent):
     def __init__(self, browser: BrowserManager | None = None) -> None:
         self.browser = browser or BrowserManager(headless=True)
         self.browser_tools = BrowserTools(self.browser)
         self.pel = PromptExecutionLayer(workspace_dir="workspace", state_dir="state")
-        super().__init__(
-            llm=google.beta.realtime.RealtimeModel(
-                model="gemini-2.5-flash-preview-native-audio-dialog",
-                voice="Enceladus",
-                language="en-GB",
-                tool_response_scheduling=genai_types.FunctionResponseScheduling.WHEN_IDLE,
-            ),
-            instructions=AGENT_INSTRUCTIONS,
-            tools=[*self.browser_tools.tools, *self.pel.tools],
-        )
+        if USE_CLONED_VOICE:
+            super().__init__(
+                llm=google.LLM(model="gemini-2.5-flash"),
+                instructions=AGENT_INSTRUCTIONS,
+                tools=[*self.browser_tools.tools, *self.pel.tools],
+            )
+        else:
+            super().__init__(
+                llm=google.beta.realtime.RealtimeModel(
+                    model="gemini-2.5-flash-preview-native-audio-dialog",
+                    voice="Enceladus",
+                    language="en-GB",
+                    tool_response_scheduling=genai_types.FunctionResponseScheduling.WHEN_IDLE,
+                ),
+                instructions=AGENT_INSTRUCTIONS,
+                tools=[*self.browser_tools.tools, *self.pel.tools],
+            )
 
 
 server = AgentServer()
@@ -45,13 +58,28 @@ async def jarvis(ctx: JobContext):
     ctx.log_context_fields = {"room": ctx.room.name}
     browser = BrowserManager(headless=False)
     ctx.add_shutdown_callback(browser.close)
-    session = AgentSession(
-        turn_handling=TurnHandlingOptions(
-            turn_detection=inference.TurnDetector(),
-            interruption={"mode": "adaptive"},
-            preemptive_generation={"enabled": True},
+
+    if USE_CLONED_VOICE:
+        if not ELEVEN_VOICE:
+            raise RuntimeError("USE_CLONED_VOICE=true needs ELEVENLABS_VOICE_ID")
+        session = AgentSession(
+            stt=inference.STT(),
+            tts=elevenlabs.TTS(voice_id=ELEVEN_VOICE, model=ELEVEN_MODEL),
+            turn_handling=TurnHandlingOptions(
+                turn_detection=inference.TurnDetector(),
+                interruption={"mode": "adaptive"},
+                preemptive_generation={"enabled": True},
+            ),
         )
-    )
+    else:
+        session = AgentSession(
+            turn_handling=TurnHandlingOptions(
+                turn_detection=inference.TurnDetector(),
+                interruption={"mode": "adaptive"},
+                preemptive_generation={"enabled": True},
+            )
+        )
+
     await session.start(
         agent=Assistant(browser),
         room=ctx.room,
