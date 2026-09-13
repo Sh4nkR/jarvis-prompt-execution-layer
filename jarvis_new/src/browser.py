@@ -64,4 +64,22 @@ class BrowserManager:
         page = await self._page_ready()
         async with self._lock:
             text = await page.locator("body").inner_text()
-            return {"url": page.url, "title": await page.title(), "text": text[:8000]}
+            return {"url": page.url, "title": await page.title(), "text": text[:12000]}
+
+    async def ask_deepseek(self, prompt: str) -> dict:
+        page = await self._page_ready()
+        async with self._lock:
+            try:
+                if "deepseek.com" not in page.url:
+                    await page.goto("https://chat.deepseek.com", wait_until="domcontentloaded")
+                box = page.locator("textarea").last
+                await box.click()
+                await box.fill(prompt[:4000])
+                await page.keyboard.press("Enter")
+                await page.wait_for_timeout(8000)
+                text = await page.locator("body").inner_text()
+                return {"url": page.url, "text": text[-8000:]}
+            except Exception as exc:
+                raise BrowserError(
+                    f"DeepSeek web failed ({exc}). Log in once in the visible Chromium window, then retry."
+                ) from exc
