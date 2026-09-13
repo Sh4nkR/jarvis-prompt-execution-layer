@@ -1,0 +1,5 @@
+.env
+.env.local
+state/github_storage.json
+__pycache__/
+.venv/

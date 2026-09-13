@@ -1,0 +1,11 @@
+{
+  "cam": true,
+  "browser": true,
+  "duckduckgo": true,
+  "phone_client": false,
+  "shell_allowlist": true,
+  "memory": true,
+  "github_session": false,
+  "android_accessibility": false,
+  "ps5": false
+}
