@@ -28,14 +28,15 @@ ELEVEN_MODEL = os.getenv("ELEVENLABS_MODEL_ID") or "eleven_multilingual_v2"
 
 class Assistant(Agent):
     def __init__(self, browser: BrowserManager | None = None) -> None:
-        self.browser = browser or BrowserManager(headless=True)
+        self.browser = browser or BrowserManager(headless=False)
         self.browser_tools = BrowserTools(self.browser)
         self.pel = PromptExecutionLayer(workspace_dir="workspace", state_dir="state")
+        tools = [*self.browser_tools.tools, *self.pel.tools]
         if USE_CLONED_VOICE:
             super().__init__(
                 llm=google.LLM(model="gemini-2.5-flash"),
                 instructions=AGENT_INSTRUCTIONS,
-                tools=[*self.browser_tools.tools, *self.pel.tools],
+                tools=tools,
             )
         else:
             super().__init__(
@@ -43,10 +44,10 @@ class Assistant(Agent):
                     model="gemini-2.5-flash-preview-native-audio-dialog",
                     voice="Enceladus",
                     language="en-GB",
-                    tool_response_scheduling=genai_types.FunctionResponseScheduling.WHEN_IDLE,
+                    tool_response_scheduling=genai_types.FunctionResponseScheduling.INTERRUPT,
                 ),
                 instructions=AGENT_INSTRUCTIONS,
-                tools=[*self.browser_tools.tools, *self.pel.tools],
+                tools=tools,
             )
 
 

@@ -1,5 +1,8 @@
 {
   "cam": true,
+  "ears": true,
+  "mouse": true,
+  "keyboard": true,
   "browser": true,
   "duckduckgo": true,
   "phone_client": false,
