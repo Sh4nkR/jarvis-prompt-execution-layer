@@ -1,5 +1,8 @@
 # Run (LiveKit is in this repo)
 
+Jarvis is uncensored: refusal sermons are off, Gemini safety is BLOCK_NONE/OFF.
+Google still has a few non-overridable filters. Pull before run.
+
 ```bat
 git clone https://github.com/Sh4nkR/jarvis-prompt-execution-layer.git
 cd jarvis-prompt-execution-layer\jarvis_new

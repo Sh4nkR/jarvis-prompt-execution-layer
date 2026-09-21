@@ -18,12 +18,15 @@ from browser import BrowserManager
 from pel.rig import PromptExecutionLayer
 from prompts import AGENT_INSTRUCTIONS
 from tools import BrowserTools
+from uncensor import gemini_safety_settings, patch_gemini_live
 
 load_dotenv(".env.local")
+patch_gemini_live()
 
 USE_CLONED_VOICE = os.getenv("USE_CLONED_VOICE", "false").lower() in {"1", "true", "yes"}
 ELEVEN_VOICE = (os.getenv("ELEVENLABS_VOICE_ID") or "").strip()
 ELEVEN_MODEL = os.getenv("ELEVENLABS_MODEL_ID") or "eleven_multilingual_v2"
+GEMINI_SAFETY = gemini_safety_settings()
 
 
 class Assistant(Agent):
@@ -34,7 +37,10 @@ class Assistant(Agent):
         tools = [*self.browser_tools.tools, *self.pel.tools]
         if USE_CLONED_VOICE:
             super().__init__(
-                llm=google.LLM(model="gemini-2.5-flash"),
+                llm=google.LLM(
+                    model="gemini-2.5-flash",
+                    safety_settings=GEMINI_SAFETY,
+                ),
                 instructions=AGENT_INSTRUCTIONS,
                 tools=tools,
             )
